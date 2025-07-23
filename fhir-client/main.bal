@@ -6,7 +6,7 @@ import ballerinax/health.fhir.r4.parser;
 
 // FHIR server config (update as needed)
 fhir_client:FHIRConnectorConfig fhirServerConfig = {
-    baseURL: "https://hapi.fhir.org/baseR4",  // Example FHIR server URL
+    baseURL: "https://example.com",  // Example FHIR server URL
     mimeType: fhir_client:FHIR_JSON
 };
 
@@ -103,63 +103,57 @@ function codeSystemLookupGet() {
 function transactionOperation() {
     io:println("\n[Transaction] Bundle with Patient and Observation");
 
-    // Create a Patient resource
-    international401:Patient patient = {
-        resourceType: "Patient",
-        id: "txn-demo-patient",
-        text: {
-            status: "generated",
-            div: "<div xmlns=\"http://www.w3.org/1999/xhtml\">Transaction Patient</div>"
-        }
-    };
-
-    // Create an Observation resource
-    international401:Observation observation = {
-        resourceType: "Observation",
-        id: "txn-demo-obs",
-        status: "final",
-        code: {
-            coding: [
-                {
-                    system: "http://loinc.org",
-                    code: "3141-9",
-                    display: "Weight Measured"
-                }
-            ]
-        },
-        subject: {
-            reference: "Patient/txn-demo-patient"
-        },
-        valueQuantity: {
-            value: 70.0,
-            unit: "kg"
-        }
-    };
-
     // Create a transaction bundle
-    r4:Bundle bundle = {
-        resourceType: "Bundle",
-        'type: "transaction",
-        entry: [
+    json bundle = {
+        "resourceType": "Bundle",
+        "type": "transaction",
+        "entry": [
             {
-                'resource: patient,
-                request: {
-                    method: "PUT",
-                    url: "Patient/txn-demo-patient"
+                "resource": {
+                    "resourceType": "Patient",
+                    "id": "txn-demo-patient",
+                    "text": {
+                        "status": "generated",
+                        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Transaction Patient</div>"
+                    }
+                },
+                "request": {
+                    "method": "PUT",
+                    "url": "Patient/txn-demo-patient"
                 }
             },
             {
-                'resource: observation,
-                request: {
-                    method: "PUT",
-                    url: "Observation/txn-demo-obs"
+                "resource": {
+                    "resourceType": "Observation",
+                    "id": "txn-demo-obs",
+                    "status": "final",
+                    "code": {
+                        "coding": [
+                            {
+                                "system": "http://loinc.org",
+                                "code": "3141-9",
+                                "display": "Weight Measured"
+                            }
+                        ]
+                    },
+                    "subject": {
+                        "reference": "Patient/txn-demo-patient"
+                    },
+                    "valueQuantity": {
+                        "value": 70.0,
+                        "unit": "kg"
+                    }
+                },
+                "request": {
+                    "method": "PUT",
+                    "url": "Observation/txn-demo-obs"
                 }
             }
         ]
     };
 
     // Send the transaction
-    fhir_client:FHIRResponse|fhir_client:FHIRError response = fhirConnector->'transaction(bundle.toJson());
+    fhir_client:FHIRResponse|fhir_client:FHIRError response = fhirConnector->'transaction(bundle);
     if response is fhir_client:FHIRResponse {
         io:println("Status: ", response.httpStatusCode);
         io:println("Transaction Response: ", response.'resource.toJson());
