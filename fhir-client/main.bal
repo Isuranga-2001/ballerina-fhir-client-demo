@@ -23,6 +23,9 @@ public function main() {
 
     // 3. callOperation: CodeSystem $lookup (GET)
     codeSystemLookupGet();
+
+    // 4. Transaction: Bundle with Patient and Observation
+    transactionOperation();
 }
 
 function searchPatientById(string patientId) {
@@ -94,5 +97,73 @@ function codeSystemLookupGet() {
         io:println("Lookup Response: ", parameters.toJson());
     } else {
         io:println("FHIR Error (callOperation): ", response.message());
+    }
+}
+
+function transactionOperation() {
+    io:println("\n[Transaction] Bundle with Patient and Observation");
+
+    // Create a Patient resource
+    international401:Patient patient = {
+        resourceType: "Patient",
+        id: "txn-demo-patient",
+        text: {
+            status: "generated",
+            div: "<div xmlns=\"http://www.w3.org/1999/xhtml\">Transaction Patient</div>"
+        }
+    };
+
+    // Create an Observation resource
+    international401:Observation observation = {
+        resourceType: "Observation",
+        id: "txn-demo-obs",
+        status: "final",
+        code: {
+            coding: [
+                {
+                    system: "http://loinc.org",
+                    code: "3141-9",
+                    display: "Weight Measured"
+                }
+            ]
+        },
+        subject: {
+            reference: "Patient/txn-demo-patient"
+        },
+        valueQuantity: {
+            value: 70.0,
+            unit: "kg"
+        }
+    };
+
+    // Create a transaction bundle
+    r4:Bundle bundle = {
+        resourceType: "Bundle",
+        'type: "transaction",
+        entry: [
+            {
+                'resource: patient,
+                request: {
+                    method: "PUT",
+                    url: "Patient/txn-demo-patient"
+                }
+            },
+            {
+                'resource: observation,
+                request: {
+                    method: "PUT",
+                    url: "Observation/txn-demo-obs"
+                }
+            }
+        ]
+    };
+
+    // Send the transaction
+    fhir_client:FHIRResponse|fhir_client:FHIRError response = fhirConnector->'transaction(bundle.toJson());
+    if response is fhir_client:FHIRResponse {
+        io:println("Status: ", response.httpStatusCode);
+        io:println("Transaction Response: ", response.'resource.toJson());
+    } else {
+        io:println("FHIR Error (transaction): ", response.message());
     }
 }
